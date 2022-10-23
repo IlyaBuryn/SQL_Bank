@@ -1,7 +1,7 @@
 USE BankSystem
 GO
 
-ALTER PROCEDURE AddMoneyProc
+CREATE OR ALTER PROCEDURE AddMoneyProc
 	@SocStatusId numeric(18, 0)
 AS
 BEGIN
@@ -23,16 +23,11 @@ PRINT 'Start procedure AddMoneyProc(id)'
 		WHERE BankAccount.BankAccountID IN (SELECT BankAccountId FROM (
 			SELECT SocialStatusId, BankAccountId FROM GetBankAccountsView WHERE SocialStatusId = @SocStatusId) AS BankAccountId)
 		PRINT 'Items was updated!'
-
-		SELECT * FROM GetBankAccountsView ORDER BY SocialStatusId
 END
 GO
 
 
-
-
-
-ALTER PROCEDURE WithdrawFromAccountToCard
+CREATE OR ALTER PROCEDURE WithdrawFromAccountToCard
 	@AccountId numeric(18, 0),
 	@CardId numeric(18, 0),
 	@Value decimal(18, 4)
@@ -40,10 +35,9 @@ AS
 BEGIN
 SET NOCOUNT ON
 PRINT 'Start procedure WithdrawFromAccountToCards(AccountId, CardId, Value)'
-
+BEGIN TRANSACTION
 	DECLARE @AccountBalance decimal(18, 4)
 	DECLARE @CardsBalance decimal(18, 4)
--- Проверка разности
 
 	IF (SELECT COUNT(*) FROM GetCards WHERE @CardId = CardId) = 0
 		PRINT 'This card does not exist'
@@ -54,10 +48,6 @@ PRINT 'Start procedure WithdrawFromAccountToCards(AccountId, CardId, Value)'
 		PRINT @AccountBalance
 		SET @CardsBalance = (SELECT SUM(CardBalance) FROM GetCards WHERE @AccountId = AccountId)
 		PRINT @CardsBalance
-		IF @AccountBalance < @Value
-		OR (@AccountBalance - @CardsBalance - @Value) < 0
-			PRINT 'Insufficient funds on the account'
-		ELSE 
 		BEGIN
 			PRINT @AccountBalance - @CardsBalance - @Value
 			UPDATE BankCard
@@ -65,6 +55,34 @@ PRINT 'Start procedure WithdrawFromAccountToCards(AccountId, CardId, Value)'
 			WHERE BankCard.BankCardID = @CardId
 			PRINT 'Items was updated!'
 		END
-		SELECT BankCard.CardBalance FROM BankCard WHERE BankCard.BankCardID = @CardId
+COMMIT
 END
 GO
+
+--CREATE OR ALTER PROCEDURE TestUpdateProcForAccountTrigger
+--	@AccountId numeric(18, 0),
+--	@NewAccountBalance decimal(18, 4)
+--AS
+--PRINT 'Start test procedure'
+--BEGIN TRANSACTION
+
+--	UPDATE BankAccount
+--		SET BankAccount.AccountBalance = @NewAccountBalance
+--	WHERE BankAccount.BankAccountID = @AccountId
+
+--COMMIT TRANSACTION
+--GO
+
+--CREATE OR ALTER PROCEDURE TestUpdateProcForCardsTrigger
+--	@CardId numeric(18, 0),
+--	@NewCardBalance decimal(18, 4)
+--AS
+--PRINT 'Start test procedure'
+--BEGIN TRANSACTION
+
+--	UPDATE BankCard
+--		SET BankCard.CardBalance = @NewCardBalance
+--	WHERE BankCard.BankCardID = @CardId
+
+--COMMIT TRANSACTION
+--GO
