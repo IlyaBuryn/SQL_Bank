@@ -2,32 +2,32 @@ USE BankSystem
 GO
 
 CREATE OR ALTER PROCEDURE AddMoneyProc
-	@SocStatusId numeric(18, 0)
+	@SocStatusId INT
 AS
 BEGIN
 SET NOCOUNT ON
 PRINT 'Start procedure AddMoneyProc(id)'
 
-	DECLARE @MoneyValue DECIMAL(18, 4), @AccQt INTEGER, @IdCheck INTEGER
+	DECLARE @MoneyValue DECIMAL(18, 4), @AccQt INT, @IdCheck INT
 	SET @MoneyValue = 10.0000
-	SET @AccQt = (SELECT COUNT(SocialStatusId) FROM GetBankAccountsView WHERE SocialStatusId = @SocStatusId)
-	SET @IdCheck = (SELECT COUNT(SocialStatus.SocialStatusID) FROM SocialStatus WHERE SocialStatus.SocialStatusID = @SocStatusId)
+	SET @AccQt = (SELECT COUNT(*) FROM GetBankAccountsView WHERE SocialStatus = @SocStatusId)
+	SET @IdCheck = (SELECT COUNT(SocialStatuses.SocialStatusID) FROM SocialStatuses WHERE SocialStatuses.SocialStatusID = @SocStatusId)
 
 	IF @IdCheck = 0
-		PRINT 'Wrong social number status!'
+		RAISERROR('Wrong social number status!', 16, 1)
 	ELSE IF @AccQt = 0
-		PRINT 'No linked accounts!'
+		RAISERROR('No linked accounts!', 16, 1)
 	ELSE
-		UPDATE BankAccount
-		SET BankAccount.AccountBalance = BankAccount.AccountBalance + @MoneyValue
-		WHERE BankAccount.BankAccountID IN (SELECT BankAccountId FROM (
-			SELECT SocialStatusId, BankAccountId FROM GetBankAccountsView WHERE SocialStatusId = @SocStatusId) AS BankAccountId)
+		UPDATE BankAccounts
+		SET BankAccounts.AccountBalance = BankAccounts.AccountBalance + @MoneyValue
+		WHERE BankAccounts.BankAccountID IN (
+			SELECT Account FROM GetBankAccountsView WHERE SocialStatus = @SocStatusId)
 		PRINT 'Items was updated!'
 END
 GO
 
 
-CREATE OR ALTER PROCEDURE WithdrawFromAccountToCard
+CREATE OR ALTER PROCEDURE WithdrawFromAccountToCardProc
 	@AccountId numeric(18, 0),
 	@CardId numeric(18, 0),
 	@Value decimal(18, 4)
@@ -36,23 +36,29 @@ BEGIN
 SET NOCOUNT ON
 PRINT 'Start procedure WithdrawFromAccountToCards(AccountId, CardId, Value)'
 BEGIN TRANSACTION
-	DECLARE @AccountBalance decimal(18, 4)
-	DECLARE @CardsBalance decimal(18, 4)
+	DECLARE @AccountBalance DECIMAL(18, 4)
+	DECLARE @CardsBalance DECIMAL(18, 4)
+	DECLARE @ToWithdraw DECIMAL(18, 4)
 
-	IF (SELECT COUNT(*) FROM GetCards WHERE @CardId = CardId) = 0
-		PRINT 'This card does not exist'
-	ELSE IF	(SELECT COUNT(*) FROM GetCards WHERE @AccountId = AccountId) = 0
-		PRINT 'This account does not exist'
+	IF (SELECT COUNT(*) FROM GetCardsView WHERE @CardId = CardId) = 0
+		RAISERROR('This card does not exist!', 16, 1)
+	ELSE IF	(SELECT COUNT(*) FROM GetCardsView WHERE @AccountId = AccountId) = 0
+		RAISERROR('This account does not exist!', 16, 1)
 	ELSE
-		SET @AccountBalance = (SELECT TOP 1 AccountBalance FROM GetCards WHERE @AccountId = AccountId)
+		SET @AccountBalance = (SELECT TOP 1 AccountBalance FROM GetCardsView WHERE @AccountId = AccountId)
 		PRINT @AccountBalance
-		SET @CardsBalance = (SELECT SUM(CardBalance) FROM GetCards WHERE @AccountId = AccountId)
+		SET @CardsBalance = (SELECT SUM(CardBalance) FROM GetCardsView WHERE @AccountId = AccountId)
 		PRINT @CardsBalance
+
+		SET @ToWithdraw = @AccountBalance - @CardsBalance - @Value
+		PRINT @ToWithdraw
+		IF @ToWithdraw < 0.0
+			RAISERROR('Account amount error!', 16, 1)
+		ELSE
 		BEGIN
-			PRINT @AccountBalance - @CardsBalance - @Value
-			UPDATE BankCard
-			SET BankCard.CardBalance = BankCard.CardBalance + @Value
-			WHERE BankCard.BankCardID = @CardId
+			UPDATE BankCards
+			SET BankCards.CardBalance = BankCards.CardBalance + @Value
+			WHERE BankCards.BankCardID = @CardId
 			PRINT 'Items was updated!'
 		END
 COMMIT

@@ -1,72 +1,70 @@
 USE BankSystem
-GO
 
 DECLARE @TestCardId numeric(18, 0), @TestCity nvarchar(64), @TestSocStatus numeric(18, 0)
 
 -- Query 2 --
 SET @TestCity = N'Grodno'
-SELECT Bank.Name
-FROM Bank
-	JOIN BranchOffice ON BranchOffice.BankID = Bank.BankID
-	JOIN City ON City.CityID = BranchOffice.CityID
-WHERE City.Name = @TestCity
-
+SELECT Banks.Name
+FROM Banks
+	JOIN BranchOffices ON BranchOffices.BankID = Banks.BankID
+	JOIN Cities ON Cities.CityID = BranchOffices.CityID
+WHERE Cities.Name = @TestCity
 
 -- Query 3 --
-SELECT Client.Name, BankCard.BankCardID AS 'Card Id', BankCard.CardBalance, Bank.Name
-FROM BankCard
-	JOIN BankAccount ON BankAccount.BankAccountID = BankCard.BankAccountID
-	JOIN Client ON Client.BankAccountID = BankAccount.BankAccountID
-	JOIN Bank ON Bank.BankID = Client.BankID
+SELECT Clients.Name, BankCards.BankCardID AS 'Card Id', BankCards.CardBalance, Banks.Name
+FROM BankCards
+	JOIN BankAccounts ON BankAccounts.BankAccountID = BankCards.BankAccountID
+	JOIN Clients ON Clients.ClientID = BankAccounts.ClientID
+	JOIN BankClients ON BankClients.ClientID = Clients.ClientID
+	JOIN Banks ON Banks.BankID = BankClients.BankID
 
 -- Query 4 --
-SELECT Client.Name, AccountId, AccountBalance, CardsBalance, (AccountBalance - CardsBalance) AS BalanceDifference
+SELECT Clients.Name, Account, AccountBalance, CardsBalance, (AccountBalance - CardsBalance) AS BalanceDifference
 FROM BalancesView
-	JOIN Client ON Client.BankAccountID = AccountId
+	JOIN Clients ON Clients.ClientID = Client
 WHERE (AccountBalance - CardsBalance) <> 0
 
 -- Query 5 --
-SELECT SocialStatus.Name, COUNT(BankCard.BankCardID) AS CardQt
-FROM BankCard
-	JOIN BankAccount ON BankAccount.BankAccountID = BankCard.BankAccountID
-	JOIN Client ON Client.BankAccountID = BankAccount.BankAccountID
-	JOIN Bank ON Bank.BankID = Client.BankID
-	FULL JOIN SocialStatus ON SocialStatus.SocialStatusID = Client.SocialStatusID
-GROUP BY SocialStatus.Name
+SELECT SocialStatuses.Name, COUNT(BankCards.BankCardID) AS CardQt
+FROM BankCards
+	JOIN BankAccounts ON BankAccounts.BankAccountID = BankCards.BankAccountID
+	JOIN Clients ON Clients.ClientID = BankAccounts.ClientID
+	FULL JOIN SocialStatuses ON SocialStatuses.SocialStatusID = Clients.SocialStatusID
+GROUP BY SocialStatuses.Name
 
--- Query 6 --
-SET @TestSocStatus = 3
-SELECT * FROM GetBankAccountsView ORDER BY SocialStatusId
+---- Query 6 --
+SET @TestSocStatus = 3 -- [3, 6, 100, -100] for tests
+SELECT * FROM GetBankAccountsView ORDER BY SocialStatus
 EXEC AddMoneyProc @TestSocStatus
-SELECT * FROM GetBankAccountsView ORDER BY SocialStatusId
+SELECT * FROM GetBankAccountsView ORDER BY SocialStatus
 
 -- Query 7 --
-SELECT Client.Name, SUM(BankCard.CardBalance) AS 'For withdraw'
-FROM Client
-	JOIN BankAccount ON Client.BankAccountID = BankAccount.BankAccountID
-	JOIN BankCard ON BankCard.BankAccountID = BankAccount.BankAccountID
-GROUP BY Client.Name
+SELECT Clients.Name, Clients.ClientID, SUM(BankCards.CardBalance) AS 'For withdraw'
+FROM Clients
+	JOIN BankAccounts ON Clients.ClientID = BankAccounts.ClientID
+	JOIN BankCards ON BankCards.BankAccountID = BankAccounts.BankAccountID
+GROUP BY Clients.Name, Clients.ClientID
 
 -- Query 8 --
 SET @TestCardId = 7
-SELECT BankCard.CardBalance FROM BankCard WHERE BankCard.BankCardID = @TestCardId
-EXEC WithdrawFromAccountToCard 6, @TestCardId, 200.0000 -- Working
---EXEC WithdrawFromAccountToCard 6, @TestCardId, 4000.0000 -- Error checking
-SELECT BankCard.CardBalance FROM BankCard WHERE BankCard.BankCardID = @TestCardId
+SELECT * FROM GetCardsView WHERE CardId = @TestCardId
+EXEC WithdrawFromAccountToCardProc 6, @TestCardId, 200.0000 -- Working
+--EXEC WithdrawFromAccountToCardProc 6, @TestCardId, 4000.0000 -- Error checking
+SELECT * FROM GetCardsView WHERE CardId = @TestCardId
 
--- Query 9 --
+---- Query 9 --
 SELECT * FROM BalancesView
 BEGIN TRANSACTION
-UPDATE BankAccount
-	SET BankAccount.AccountBalance = 1000 -- [1000, -100, 400, 500] for tests
-WHERE BankAccount.BankAccountID = 1
+UPDATE BankAccounts
+	SET BankAccounts.AccountBalance = 1000 -- [1000, -100, 400, 500] for tests
+WHERE BankAccounts.BankAccountID = 1
 COMMIT TRANSACTION
 SELECT * FROM BalancesView
 
 SELECT * FROM BalancesView
 BEGIN TRANSACTION
-UPDATE BankCard
-	SET BankCard.CardBalance = 200 -- [200, -200, 700, 800] for tests
-WHERE BankCard.BankCardID = 1
+UPDATE BankCards
+	SET BankCards.CardBalance = 200 -- [200, -200, 700, 800] for tests
+WHERE BankCards.BankCardID = 1
 COMMIT TRANSACTION
 SELECT * FROM BalancesView

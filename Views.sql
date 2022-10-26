@@ -3,30 +3,32 @@ GO
 
 CREATE OR ALTER VIEW GetBankAccountsView AS
 SELECT 
-	SocialStatus.SocialStatusID AS 'SocialStatusId',
-	BankAccount.AccountBalance AS 'NeAccountBalance',
-	BankAccount.BankAccountID AS 'BankAccountId'
-FROM SocialStatus
-	JOIN Client ON Client.SocialStatusID = SocialStatus.SocialStatusID
-	JOIN BankAccount ON BankAccount.BankAccountID = Client.BankAccountID
+	SocialStatuses.SocialStatusID AS 'SocialStatus',
+	BankAccounts.AccountBalance AS 'AccountBalance',
+	BankAccounts.BankAccountID AS 'Account'
+FROM SocialStatuses
+	JOIN Clients ON Clients.SocialStatusID = SocialStatuses.SocialStatusID
+	JOIN BankAccounts ON BankAccounts.ClientID = Clients.ClientID
 GO
 
-CREATE OR ALTER VIEW GetCards AS
+CREATE OR ALTER VIEW GetCardsView AS
 SELECT
-	BankCard.BankCardID AS 'CardId',
-	BankCard.CardBalance AS 'CardBalance',
-	BankAccount.BankAccountID AS 'AccountId',
-	BankAccount.AccountBalance AS 'AccountBalance'
-FROM BankAccount
-	JOIN BankCard ON BankCard.BankAccountID = BankAccount.BankAccountID
+	BankCards.BankCardID AS 'CardId',
+	BankCards.CardBalance AS 'CardBalance',
+	BankAccounts.BankAccountID AS 'AccountId',
+	BankAccounts.AccountBalance AS 'AccountBalance'
+FROM BankAccounts
+	JOIN BankCards ON BankCards.BankAccountID = BankAccounts.BankAccountID
 GO
 
 CREATE OR ALTER VIEW BalancesView AS
 SELECT 
-	BankAccount.BankAccountID AS 'AccountId',
-	BankAccount.AccountBalance AS 'AccountBalance',
-	SUM(BankCard.CardBalance) AS 'CardsBalance'
-FROM BankAccount
-	JOIN BankCard ON BankCard.BankAccountID = BankAccount.BankAccountID
-GROUP BY BankAccount.BankAccountID, BankAccount.AccountBalance
+	BankAccounts.BankAccountID AS 'Account',
+	BankAccounts.AccountBalance AS 'AccountBalance',
+	Clients.ClientID AS 'Client',
+	SUM(BankCards.CardBalance) AS 'CardsBalance'
+FROM BankAccounts
+	JOIN BankCards ON BankCards.BankAccountID = BankAccounts.BankAccountID
+	JOIN Clients ON Clients.ClientID = BankAccounts.ClientID
+GROUP BY BankAccounts.BankAccountID, BankAccounts.AccountBalance, Clients.ClientID
 GO
