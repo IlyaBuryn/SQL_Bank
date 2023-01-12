@@ -11,16 +11,16 @@ PRINT 'Start procedure AddMoneyProc(id)'
 	DECLARE @MoneyValue DECIMAL(18, 4), @AccQt INT, @IdCheck INT
 	SET @MoneyValue = 10.0000
 	SET @AccQt = (SELECT COUNT(*) FROM GetBankAccountsView WHERE SocialStatus = @SocStatusId)
-	SET @IdCheck = (SELECT COUNT(SocialStatuses.SocialStatusID) FROM SocialStatuses WHERE SocialStatuses.SocialStatusID = @SocStatusId)
+	SET @IdCheck = (SELECT COUNT(SocialStatuses.Id) FROM SocialStatuses WHERE SocialStatuses.Id = @SocStatusId)
 
 	IF @IdCheck = 0
 		RAISERROR('Wrong social number status!', 16, 1)
 	ELSE IF @AccQt = 0
 		RAISERROR('No linked accounts!', 16, 1)
 	ELSE
-		UPDATE BankAccounts
-		SET BankAccounts.AccountBalance = BankAccounts.AccountBalance + @MoneyValue
-		WHERE BankAccounts.BankAccountID IN (
+		UPDATE BankClients
+		SET BankClients.AccountBalance = BankClients.AccountBalance + @MoneyValue
+		WHERE BankClients.Id IN (
 			SELECT Account FROM GetBankAccountsView WHERE SocialStatus = @SocStatusId)
 		PRINT 'Items was updated!'
 END
@@ -58,7 +58,7 @@ BEGIN TRANSACTION
 		BEGIN
 			UPDATE BankCards
 			SET BankCards.CardBalance = BankCards.CardBalance + @Value
-			WHERE BankCards.BankCardID = @CardId
+			WHERE BankCards.Id = @CardId
 			PRINT 'Items was updated!'
 		END
 COMMIT

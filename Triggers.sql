@@ -1,13 +1,13 @@
 USE BankSystem
 GO
 
-CREATE OR ALTER TRIGGER AccountUpdateTrigger ON BankAccounts
+CREATE OR ALTER TRIGGER AccountUpdateTrigger ON BankClients
 AFTER UPDATE
 AS
 SET NOCOUNT ON
 PRINT 'Bank account update trigger'
 
-	IF (SELECT COUNT(*) FROM BankAccounts WHERE BankAccounts.AccountBalance < 0) > 0
+	IF (SELECT COUNT(*) FROM BankClients WHERE BankClients.AccountBalance < 0) > 0
 	OR (SELECT COUNT(*) FROM BalancesView WHERE CardsBalance > AccountBalance) > 0
 	BEGIN
 		ROLLBACK TRANSACTION
