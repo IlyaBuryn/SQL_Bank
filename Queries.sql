@@ -11,7 +11,7 @@ FROM Banks
 WHERE Cities.Name = @TestCity
 
 -- Query 3 --
-SELECT Clients.Name AS 'Client name', BankCards.Id AS 'Card id', BankCards.CardBalance AS 'Card balance', Banks.Name AS 'Bank name'
+SELECT Clients.Name AS 'Client name', BankCards.CardBalance AS 'Card balance', Banks.Name AS 'Bank name'
 FROM BankCards
 	JOIN BankClients ON BankClients.Id = BankCards.BankClientId
 	JOIN Clients ON Clients.Id = BankClients.ClientId
@@ -23,13 +23,22 @@ FROM BalancesView
 	JOIN Clients ON Clients.Id = Client
 WHERE (AccountBalance - CardsBalance) <> 0
 
--- Query 5 --
+-- Query 5 (GroupBy) --
 SELECT SocialStatuses.Name AS 'Social status name', COUNT(BankCards.Id) AS 'Card quantity'
 FROM BankCards
 	JOIN BankClients ON BankClients.Id = BankCards.BankClientId
 	JOIN Clients ON Clients.Id = BankClients.ClientId
 	FULL JOIN SocialStatuses ON SocialStatuses.Id = Clients.SocialStatusId
 GROUP BY SocialStatuses.Name
+
+-- Query 5 (Subquery) --
+
+SELECT SocialStatuses.Name AS 'Social status name',
+	(SELECT COUNT(BankCards.Id) FROM BankCards
+		JOIN BankClients ON BankClients.Id = BankCards.BankClientId
+		JOIN Clients ON Clients.Id = BankClients.ClientId
+		WHERE Clients.SocialStatusId = SocialStatuses.Id) AS 'Card quantity'
+FROM SocialStatuses
 
 -- Query 6 --
 SET @TestSocStatus = 3 -- [3, 6, 100, -100] for tests

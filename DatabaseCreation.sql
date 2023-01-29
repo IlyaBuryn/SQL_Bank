@@ -41,6 +41,7 @@ CREATE TABLE BankClients(
 	BankId INT NOT NULL,
 	ClientId INT NOT NULL,
 	AccountBalance DECIMAL(18, 4) NOT NULL,
+	UNIQUE (BankId, ClientId),
 	FOREIGN KEY (BankId) REFERENCES Banks(Id),
 	FOREIGN KEY (ClientId) REFERENCES Clients(Id) ON DELETE CASCADE
 )
